@@ -549,7 +549,7 @@ def main():
                 print(f"ITERATIONS DONE: {it_done}")
                 conn.close()
                 print("Connection closed.")
-                sleep(250)  # Skips time because of API requests limitation (15 requests / hour)
+                sleep(300)  # Skips time because of API requests limitation (15 requests / hour)
 
 
 main()
