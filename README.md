@@ -1,5 +1,5 @@
 ## <div align="center"> Data engineering project #1 | ETL using Python and SQL </div>
-(pipeline pic)
+![Pipeline schema](https://images2.imgbox.com/61/67/isthlKVm_o.png)
 ### About the project
 I’ve created a small script which uses [The Space Devs API](https://thespacedevs.com/llapi) to retrieve data about rocket launches. Getting the data from the API, it’s possible to make some analysis, look at statistics, and answer questions such as:
 1. In what year did the humanity launch the most rockets into the space?
