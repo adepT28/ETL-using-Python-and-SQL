@@ -36,39 +36,45 @@ Considering specifics of the data, Star Schema is the perfect fit for the DB.
 
 ### Examples of queries:
 Now it’s time to answer the questions in the _about_ section.
-1. In what year did the humanity launch the most rockets into the space?
+#### 1. In what year did the humanity launch the most rockets into the space?
 ```
 SELECT 
-  EXTRACT(YEAR FROM launch_time), 
+  EXTRACT(YEAR FROM launch_time) as year, 
   count(*) total_launches
 FROM launch
 WHERE status_id = 3
 GROUP BY 1
-ORDER BY 2 DESC
+ORDER BY 2 DESC;
 ```
-2. What countries have the highest number of launches per year?
+![Query1](https://images2.imgbox.com/73/1f/v1BejpcY_o.png)
+
+As we can see, 2022 and 2021 are leading in this chart.
+
+#### 2. What countries have the highest number of launches per year?
 ```
 SELECT 
-  EXTRACT(YEAR from la.launch_time) AS year, 
-  count(*) AS total_launches, 
-  lo.country_code AS leading_country
-FROM launch la
-INNER JOIN location lo ON lo.location_id = la.location_id
-INNER JOIN (
-  SELECT 
-    EXTRACT(YEAR from launch_time) AS year, 
-    location_id, 
-    ROW_NUMBER() OVER (PARTITION BY EXTRACT(YEAR from launch_time) ORDER BY count(*) DESC) AS row_num
-  FROM launch
-  WHERE status_id IN (3, 4, 7)
-  GROUP BY 1, 2
-) loc_count ON loc_count.year = EXTRACT(YEAR from la.launch_time) 
-AND loc_count.location_id = la.location_id AND loc_count.row_num = 1
-WHERE status_id IN (3, 4, 7)
-GROUP BY 1, 3
-ORDER BY 1 ASC
+    year, 
+    country_code,
+    country_launches
+FROM (
+    SELECT 
+        EXTRACT(YEAR FROM launch.launch_time) AS year,
+        location.country_code AS country_code,
+        COUNT(*) AS country_launches,
+        RANK() OVER (PARTITION BY EXTRACT(YEAR FROM launch.launch_time) ORDER BY COUNT(*) DESC) AS rank
+    FROM launch
+    INNER JOIN location ON launch.location_id = location.location_id
+    WHERE  launch.status_id IN (3,4,7)
+    GROUP BY 1, 2
+) AS t
+WHERE rank = 1
+ORDER BY 1;
 ```
-3. Is percentage of failures going down or up?
+![Query2](https://images2.imgbox.com/96/b2/UKnBB5WN_o.png)
+
+The USA and China take the lead from each other almost every year.
+
+#### 3. Is percentage of failures going down or up?
 ```
 SELECT 
   EXTRACT(YEAR FROM launch_time) AS year,
@@ -79,7 +85,10 @@ ON la.status_id = s.status_id
 GROUP BY 1
 ORDER BY 1 ASC;
 ```
-4. What rocket family has the biggest amount of launches?
+![Query3](https://images2.imgbox.com/cd/7f/82UE2imO_o.png)
+
+In this case it's not that easy to give a certain answer, so we'll leave it to analysts :)
+#### 4. What rocket family has the biggest amount of launches?
 ```
 SELECT 
   r.rocket_family,
@@ -91,9 +100,12 @@ SELECT
 FROM rocket r
 JOIN launch la ON r.rocket_id = la.rocket_id
 GROUP BY 1
-ORDER BY 2 DESC
+ORDER BY 2 DESC;
 ```
-5. What are the most popular spaceports?
+![Query4](https://images2.imgbox.com/a3/fd/suUwcwzW_o.png)
+
+For now, Top 3 is occupied by Soviet rocket families.
+### 5. What are the most popular spaceports?
 ```
 SELECT 
   lo.location_id, 
@@ -103,5 +115,11 @@ FROM location lo
 INNER JOIN launch la
 ON lo.location_id = la.location_id
 GROUP BY 1, 2
-ORDER BY 3 DESC
+ORDER BY 3 DESC;
 ```
+![Query5](https://images2.imgbox.com/d1/47/MLjamWbV_o.png)
+
+Here we can see top 5 spaceports used for more than 75% of all launches in human history!
+
+### Conclusion
+Using Python, Pandas, SQL, and psycopg2, I've created a small ETL pipeline to get _some_ data from API about rocket launches. The result may possess interest for analysts or just people interested in the area.  Theoretically, it is possible to broaden the project as only ~30% of the initial data was used. 
