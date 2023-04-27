@@ -419,24 +419,22 @@ def create_view(view_name, cur):
         (year, total_launches, leading_country)
         AS
         SELECT 
-            EXTRACT(YEAR from la.launch_time) AS year, 
-            count(*) AS total_launches, 
-            lo.country_code AS leading_country
-        FROM launch la
-        INNER JOIN location lo ON lo.location_id = la.location_id
-        INNER JOIN (
+            year, 
+            country_code,
+            country_launches
+        FROM (
             SELECT 
-            EXTRACT(YEAR from launch_time) AS year, 
-            location_id, 
-            ROW_NUMBER() OVER (PARTITION BY EXTRACT(YEAR from launch_time) ORDER BY count(*) DESC) AS row_num
+                EXTRACT(YEAR FROM launch.launch_time) AS year,
+                location.country_code AS country_code,
+                COUNT(*) AS country_launches,
+                RANK() OVER (PARTITION BY EXTRACT(YEAR FROM launch.launch_time) ORDER BY COUNT(*) DESC) AS rank
             FROM launch
-            WHERE status_id IN (3, 4, 7)
+            INNER JOIN location ON launch.location_id = location.location_id
+            WHERE  launch.status_id IN (3,4,7)
             GROUP BY 1, 2
-        ) loc_count ON loc_count.year = EXTRACT(YEAR from la.launch_time) 
-        AND loc_count.location_id = la.location_id AND loc_count.row_num = 1
-        WHERE status_id IN (3, 4, 7)
-        GROUP BY 1, 3
-        ORDER BY 1 ASC
+        ) AS t
+        WHERE rank = 1
+        ORDER BY 1
         """)
     elif view_name == 'rocket_family_stats':
         cur.execute("""
@@ -445,14 +443,10 @@ def create_view(view_name, cur):
         AS
         SELECT r.rocket_family,
         count(la.*) FILTER (WHERE la.status_id IN (3, 4, 7)) AS total_launches,
-
         count(la.*) FILTER (WHERE la.status_id = 3) AS successful_launches,
-
         count(la.*) FILTER (WHERE la.status_id IN (4, 7)) AS failed_launches,
-
         count(la.*) FILTER (WHERE la.status_id = 3) * 100 / NULLIF(count(la.*) FILTER 
         (WHERE la.status_id IN (3, 4, 7)), 0) AS success_rate
-
         FROM rocket r
         JOIN launch la ON r.rocket_id = la.rocket_id
         GROUP BY r.rocket_family
